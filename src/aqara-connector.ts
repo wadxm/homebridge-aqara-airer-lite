@@ -1,7 +1,7 @@
 import axios from 'axios';
 import qs from 'qs';
 import urllib from 'url';
-import {Characteristic, Logging} from 'homebridge';
+import {Logging} from 'homebridge';
 
 export class AqaraConnector {
 
@@ -136,13 +136,13 @@ export class AqaraConnector {
         const airer_control = resource.result.find((one: {attr: string}) => one.attr === 'airer_control');
         switch (parseInt(airer_control.value)) {
             case 0:
-                return Characteristic.PositionState.STOPPED;
+                return 2;
             case 1:
-                return Characteristic.PositionState.INCREASING;
+                return 1;
             case 2:
-                return Characteristic.PositionState.DECREASING;
+                return 0;
         }
-        return Characteristic.PositionState.STOPPED;
+        return 2;
     }
 
     async setAirerLevel(level: number, onStopped: () => void) {
