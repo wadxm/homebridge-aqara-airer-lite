@@ -1,7 +1,7 @@
 import axios from 'axios';
 import qs from 'qs';
 import urllib from 'url';
-import { Characteristic } from 'homebridge';
+import {Characteristic, Logging} from 'homebridge';
 
 export class AqaraConnector {
 
@@ -21,34 +21,40 @@ export class AqaraConnector {
     targetLevel?: number;
     actionTime?: number;
     totalDuration?: number;
-    speed: number = 100 / 8;
+    speed: number = 100 / 8000;
     timeoutId?: NodeJS.Timeout;
 
-    constructor(clientId: string, clientSecret: string, account: string, password: string) {
+    private readonly log: Logging;
+
+    constructor(clientId: string, clientSecret: string, account: string, password: string, log: Logging) {
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.account = account;
         this.password = password;
+        this.log = log;
 
         this.init();
     }
 
     init = async () => {
-        const res = await axios.post("https://aiot-oauth2.aqara.cn/authorize", qs.stringify({
+        this.log('airer initializing');
+        const body = qs.stringify({
             client_id: this.clientId,
             response_type: 'code',
             redirect_uri: 'https://www.xiongdianpku.com',
             account: this.account,
             password: this.password
-        }), {
+        });
+        this.log(`Oauth step 1 requesting with data: ${body}`);
+        const response = await axios.post("https://aiot-oauth2.aqara.cn/authorize", body, {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
-            }
-        }).then(r => r.data);
-        if (res.code !== 0) {
-            throw new Error(res.code);
-        }
-        const url = urllib.parse(res.result?.location, true);
+            },
+            maxRedirects: 0,
+            validateStatus: status => status === 302
+        });
+        this.log(`Oauth step 1 response: ${JSON.stringify(response.headers)}`);
+        const url = urllib.parse(response.headers.location, true);
         const code = url.query.code;
 
         await this.getTokenWithData({
@@ -64,6 +70,7 @@ export class AqaraConnector {
         code?: string,
         refresh_token?: string
     }) {
+        this.log('airer getting token');
         const tokenRes = await axios.post("https://aiot-oauth2.aqara.cn/access_token", qs.stringify({
             client_id: this.clientId,
             client_secret: this.clientSecret,
@@ -74,12 +81,10 @@ export class AqaraConnector {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
         }).then(r => r.data);
-        if (tokenRes.code !== 0) {
-            throw new Error(tokenRes.code);
-        }
-        this.accessToken = tokenRes.result.access_token;
-        this.refreshToken = tokenRes.result.refresh_token;
-        this.expireTime = new Date().getTime() + parseInt(tokenRes.result.expires_in) * 1000
+        this.log(`Oauth step 2 response: ${JSON.stringify(tokenRes)}`);
+        this.accessToken = tokenRes.access_token;
+        this.refreshToken = tokenRes.refresh_token;
+        this.expireTime = new Date().getTime() + parseInt(tokenRes.expires_in) * 1000
     }
 
     async refreshTokenIfNeeded() {
@@ -92,15 +97,22 @@ export class AqaraConnector {
     }
 
     async getAirerDid() {
-        const models = await this.postAqara('/open/device/query', {});
+        const models = await this.getAqara('/open/device/query');
         const airerModel = models.result.data.find((item: {model: string, did: string}) => item.model === 'lumi.airer.acn02');
         this.airerDid = airerModel?.did;
+        if (this.airerDid) {
+            this.log(`Found airer did: ${this.airerDid}`);
+        } else {
+            this.log(`No aqara airer device found`);
+        }
     }
 
     async getAirerLevel() {
         const resource = await this.postAqara('/open/resource/query', {
-            did: this.airerDid,
-            attrs: ['level']
+            data: [{
+                did: this.airerDid,
+                attrs: ['level']
+            }]
         });
         const level = resource.result.find((one: {attr: string}) => one.attr === 'level');
         return parseInt(level.value);
@@ -116,8 +128,10 @@ export class AqaraConnector {
 
     async getStatePosition() {
         const resource = await this.postAqara('/open/resource/query', {
-            did: this.airerDid,
-            attrs: ['airer_control']
+            data: [{
+                did: this.airerDid,
+                attrs: ['airer_control']
+            }]
         });
         const airer_control = resource.result.find((one: {attr: string}) => one.attr === 'airer_control');
         switch (parseInt(airer_control.value)) {
@@ -131,7 +145,11 @@ export class AqaraConnector {
         return Characteristic.PositionState.STOPPED;
     }
 
-    async setAirerLevel(level: number) {
+    async setAirerLevel(level: number, onStopped: () => void) {
+        this.currentLevel = await this.getAirerLevel();
+        if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+        }
         const action = await this.postAqara('/open/resource/update', {
             did: this.airerDid,
             attrs: {
@@ -139,15 +157,12 @@ export class AqaraConnector {
             }
         });
         if (action.code === 0) {
-            this.currentLevel = await this.getAirerLevel();
             this.targetLevel = level;
             this.actionTime = new Date().getTime();
             this.totalDuration = Math.abs(this.targetLevel - this.currentLevel) / this.speed;
-            if (this.timeoutId) {
-                clearTimeout(this.timeoutId);
-            }
             this.timeoutId = setTimeout(() => {
-                this.currentLevel = this.targetLevel = this.actionTime = this.totalDuration = undefined;
+                this.currentLevel = this.targetLevel = this.actionTime = this.totalDuration = this.timeoutId = undefined;
+                onStopped();
             }, this.totalDuration);
             return true;
         } else {
@@ -157,8 +172,10 @@ export class AqaraConnector {
 
     async getAirerLightStatus() {
         const resource = await this.postAqara('/open/resource/query', {
-            did: this.airerDid,
-            attrs: ['light_control']
+            data: [{
+                did: this.airerDid,
+                attrs: ['light_control']
+            }]
         });
         const level = resource.result.find((one: {attr: string}) => one.attr === 'light_control');
         return parseInt(level.value);
@@ -174,13 +191,37 @@ export class AqaraConnector {
         return action.code === 0;
     }
 
-    async postAqara(path: string, data: any) {
-        return await axios.post( `https://aiot-oauth2.aqara.cn${path}`, data, {
-            headers: {
-                Appid: this.clientId,
-                Accesstoken: this.accessToken,
-                Time: new Date().getTime()
-            }
+    commonHeaders() {
+        return {
+            Appid: this.clientId,
+            Accesstoken: this.accessToken,
+            Time: new Date().getTime()
+        };
+    }
+
+    async getAqara(path: string) {
+        await this.refreshTokenIfNeeded();
+        const headers = this.commonHeaders();
+        this.log(`Get Aqara Request to ${path}, headers: ${JSON.stringify(headers)}`);
+        const res = await axios.get( `https://aiot-open-3rd.aqara.cn/3rd/v1.0${path}`, {
+            headers
         }).then(res => res.data);
+        this.log(`Get Aqara Response: ${JSON.stringify(res)}`);
+        return res;
+    }
+
+    async postAqara(path: string, data: any) {
+        while (!this.airerDid) {
+            // waiting for airer initializing
+            await new Promise(r => setTimeout(r, 1000));
+        }
+        await this.refreshTokenIfNeeded();
+        const headers = this.commonHeaders();
+        this.log(`Post Aqara Request to ${path} with data: ${JSON.stringify(data)}, headers: ${JSON.stringify(headers)}`);
+        const res = await axios.post( `https://aiot-open-3rd.aqara.cn/3rd/v1.0${path}`, data, {
+            headers
+        }).then(res => res.data);
+        this.log(`Post Aqara Response: ${JSON.stringify(res)}`);
+        return res;
     }
 }

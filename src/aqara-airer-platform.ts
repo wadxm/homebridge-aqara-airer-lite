@@ -55,7 +55,7 @@ class AqaraAirerPlatform implements StaticPlatformPlugin {
    * The set of exposed accessories CANNOT change over the lifetime of the plugin!
    */
   accessories(callback: (foundAccessories: AccessoryPlugin[]) => void): void {
-    const connector = new AqaraConnector(this.config.client_id, this.config.client_secret, this.config.account, this.config.password);
+    const connector = new AqaraConnector(this.config.client_id, this.config.client_secret, this.config.account, this.config.password, this.log);
     callback([
       new AqaraAirerLight(hap, this.log, "Light", connector),
       new AqaraAirerUpDown(hap, this.log, "Airer", connector),

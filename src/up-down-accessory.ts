@@ -1,12 +1,12 @@
 import {
-  AccessoryPlugin,
-  CharacteristicGetCallback,
-  CharacteristicSetCallback,
-  CharacteristicValue,
-  HAP,
-  Logging,
-  Service,
-  CharacteristicEventTypes
+    AccessoryPlugin,
+    CharacteristicGetCallback,
+    CharacteristicSetCallback,
+    CharacteristicValue,
+    HAP,
+    Logging,
+    Service,
+    CharacteristicEventTypes, Characteristic
 } from "homebridge";
 import {AqaraConnector} from "./aqara-connector";
 
@@ -38,7 +38,11 @@ export class AqaraAirerUpDown implements AccessoryPlugin {
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         log.info(`Setting target state of the airer level: ${value}`);
-        connector.setAirerLevel(value as number).then(succeeded => {
+        connector.setAirerLevel(value as number, () => {
+            log.info(`Airer level set, airer stopped, set current position=${value}, position state=${Characteristic.PositionState.STOPPED}`);
+            this.upDownService.updateCharacteristic(hap.Characteristic.CurrentPosition, value);
+            this.upDownService.updateCharacteristic(hap.Characteristic.PositionState, Characteristic.PositionState.STOPPED);
+        }).then(succeeded => {
           log.info(`Setting target state of the airer level succeeded: ${succeeded}`);
           callback(succeeded ? undefined : new Error());
         });
