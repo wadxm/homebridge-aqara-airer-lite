@@ -1,6 +1,6 @@
 {
   "name": "homebridge-aqara-airer-lite",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A homebridge plugin for Aqara Airer Lite",
   "main": "dist/aqara-airer-platform.js",
   "scripts": {
