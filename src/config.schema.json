@@ -1,0 +1,34 @@
+{
+  "pluginAlias": "Aqara-Airer",
+  "pluginType": "platform",
+  "singular": false,
+  "headerDisplay": "Optional content to display above the plugin config. Supports markdown.",
+  "footerDisplay": "Optional content to display below the plugin config. Supports markdown.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "client_id": {
+        "title": "Client ID",
+        "type": "string",
+        "required": true
+      },
+      "client_secret": {
+        "title": "Client Secret",
+        "type": "string",
+        "required": true
+      },
+      "account": {
+        "title": "Aqara Account",
+        "type": "string",
+        "required": true
+      },
+      "password": {
+        "title": "Aqara Password",
+        "type": "string",
+        "required": true
+      }
+    }
+  },
+  "form": null,
+  "display": null
+}
