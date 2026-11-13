@@ -20,6 +20,7 @@
   "license": "ISC",
   "files": [
     "LICENSE",
+    "config.schema.json",
     "dist"
   ],
   "repository": {
@@ -30,14 +31,12 @@
     "url": "http://github.com/wadxm/homebridge-aqara-airer-lite/issues"
   },
   "devDependencies": {
-    "@types/node": "10.17.19",
-    "typescript": "^3.8.3",
+    "@types/node": "^18.19.130",
+    "homebridge": "^1.0.4",
     "rimraf": "^3.0.2",
-    "homebridge": "^1.0.4"
+    "typescript": "~5.8.3"
   },
   "dependencies": {
-    "@types/qs": "^6.9.5",
-    "axios": "^0.21.0",
-    "qs": "^6.9.4"
+    "axios": "^1.20.0"
   }
 }

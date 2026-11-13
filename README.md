@@ -16,8 +16,11 @@ Insert the config into your homebridge config.json:
     "client_id": "", // your aqara open app id
     "client_secret": "", // your aqara open app secret
     "account": "", // your aqara account (likely phone number, which has an Aqara Airer Lite device binded to)
-    "password": "" // your aqara account password
+    "password": "", // your aqara account password
+    "redirect_uri": "" // optional, must match the redirect URI of your aqara open app (defaults to https://www.xiongdianpku.com)
 }
 ```
+
+You can also configure it in Homebridge Config UI X, the plugin ships a `config.schema.json`.
 
 Then this plugin will automatically found the first Aqara Airer Lite device among the devices binded to your aqara account, and turn it into the HomeKit device.

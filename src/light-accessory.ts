@@ -31,13 +31,19 @@ export class AqaraAirerLight implements AccessoryPlugin {
         connector.getAirerLightStatus().then(value => {
           log.info("Current light status was returned: " + (value? "ON": "OFF"));
           callback(undefined, value);
+        }).catch(e => {
+          log.error(`Error getting light status: ${e}`);
+          callback(e);
         });
       })
       .on(CharacteristicEventTypes.SET, (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
         log.info("Setting light status: " + (value? "ON": "OFF"));
         connector.setAirerLightStatus(value as boolean).then(succeeded => {
           log.info("Light status set succeeded: " + succeeded);
-          callback(succeeded ? undefined : new Error());
+          callback(succeeded ? undefined : new Error("Failed to set light status"));
+        }).catch(e => {
+          log.error(`Error setting light status: ${e}`);
+          callback(e);
         });
       });
 
