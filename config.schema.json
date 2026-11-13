@@ -1,0 +1,46 @@
+{
+  "pluginAlias": "aqara-airer-lite",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Requires an Aqara open cloud OAuth2 app, register one at https://opencloud.aqara.cn.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "Aqara Airer Lite",
+        "required": true
+      },
+      "client_id": {
+        "title": "Client ID",
+        "type": "string",
+        "required": true
+      },
+      "client_secret": {
+        "title": "Client Secret",
+        "type": "string",
+        "required": true
+      },
+      "account": {
+        "title": "Aqara Account",
+        "type": "string",
+        "required": true
+      },
+      "password": {
+        "title": "Aqara Password",
+        "type": "string",
+        "required": true,
+        "x-schema-form": {
+          "type": "password"
+        }
+      },
+      "redirect_uri": {
+        "title": "OAuth Redirect URI",
+        "type": "string",
+        "description": "Must match the redirect URI registered for your Aqara open app.",
+        "placeholder": "https://www.xiongdianpku.com"
+      }
+    }
+  }
+}

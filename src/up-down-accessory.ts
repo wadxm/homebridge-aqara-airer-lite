@@ -44,7 +44,10 @@ export class AqaraAirerUpDown implements AccessoryPlugin {
             this.upDownService.updateCharacteristic(hap.Characteristic.PositionState, 2);
         }).then(succeeded => {
           log.info(`Setting target state of the airer level succeeded: ${succeeded}`);
-          callback(succeeded ? undefined : new Error());
+          callback(succeeded ? undefined : new Error("Failed to set airer level"));
+        }).catch(e => {
+          log.error(`Error setting level: ${e}`);
+          callback(e);
         });
       });
 
@@ -76,7 +79,7 @@ export class AqaraAirerUpDown implements AccessoryPlugin {
       .setCharacteristic(hap.Characteristic.Manufacturer, "Aqara")
       .setCharacteristic(hap.Characteristic.Model, "Aqara Airer Lite");
 
-    log.info("Airer light '%s' created!", name);
+    log.info("Airer '%s' created!", name);
   }
 
   /*
